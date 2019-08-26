@@ -18,58 +18,9 @@
 #include <misc/util.h>
 #include <device.h>
 #include <gpio.h>
+#include <dk_buttons_and_leds.h>
 
 LOG_MODULE_REGISTER(app);
-
-#ifndef SW0_GPIO_CONTROLLER
-#ifdef SW0_GPIO_NAME
-#define SW0_GPIO_CONTROLLER SW0_GPIO_NAME
-#else
-#error SW0_GPIO_NAME or SW0_GPIO_CONTROLLER needs to be set in board.h
-#endif
-#endif
-#define PORT	SW0_GPIO_CONTROLLER
-
-#ifdef SW0_GPIO_PIN
-#define PIN_1     SW0_GPIO_PIN
-#else
-#error SW0_GPIO_PIN needs to be set in board.h
-#endif
-
-#ifdef SW1_GPIO_PIN
-#define PIN_2     SW1_GPIO_PIN
-#else
-#error SW0_GPIO_PIN needs to be set in board.h
-#endif
-
-#ifdef SW2_GPIO_PIN
-#define PIN_3     SW2_GPIO_PIN
-#else
-#error SW0_GPIO_PIN needs to be set in board.h
-#endif
-
-#ifdef SW3_GPIO_PIN
-#define PIN_4     SW3_GPIO_PIN
-#else
-#error SW0_GPIO_PIN needs to be set in board.h
-#endif
-
-#ifdef SW0_GPIO_FLAGS
-#define EDGE    (SW0_GPIO_FLAGS | GPIO_INT_EDGE)
-#else
-#define EDGE    (GPIO_INT_EDGE | GPIO_INT_ACTIVE_LOW)
-#endif
-
-#ifndef SW0_GPIO_FLAGS
-#ifdef SW0_GPIO_PIN_PUD
-#define SW0_GPIO_FLAGS SW0_GPIO_PIN_PUD
-#else
-#define SW0_GPIO_FLAGS 0
-#endif
-#endif
-#define PULL_UP SW0_GPIO_FLAGS
-
-static struct gpio_callback gpio_cb;
 
 u8_t msg[] = "my message";
 u8_t bit_type[] = "N";
@@ -234,61 +185,33 @@ void check_service_message(int value)
 	}
 }
 
-static void button_pressed(struct device *gpiob, struct gpio_callback *cb,
-			   u32_t pins)
+static void button_pressed(u32_t button_state, u32_t has_changed)
 {
-	if (pins & BIT(PIN_1)) {
+	u32_t button = button_state & has_changed;
+
+	if (button & DK_BTN1_MSK) {
 		check_service_message(1);
 
 		nfc_tnep_rx_msg_indicate(tag_buffer, tag_buffer_size);
 	}
 
-	if (pins & BIT(PIN_2)) {
+	if (button & DK_BTN2_MSK) {
 		check_service_message(2);
 
 		nfc_tnep_rx_msg_indicate(tag_buffer, tag_buffer_size);
 	}
 
-	if (pins & BIT(PIN_3)) {
+	if (button & DK_BTN3_MSK) {
 		check_service_message(3);
 
 		nfc_tnep_rx_msg_indicate(tag_buffer, tag_buffer_size);
 	}
 
-	if (pins & BIT(PIN_4)) {
+	if (button & DK_BTN4_MSK) {
 		check_service_message(4);
 
 		nfc_tnep_rx_msg_indicate(tag_buffer, tag_buffer_size);
 	}
-}
-
-static void gpiob_init(void)
-{
-	struct device *gpiob;
-
-	gpiob = device_get_binding(PORT);
-	if (!gpiob) {
-		printk("gpiob init error\n");
-		return;
-	}
-
-	gpio_pin_configure(gpiob, PIN_1,
-			   GPIO_DIR_IN | GPIO_INT | PULL_UP | EDGE);
-	gpio_pin_configure(gpiob, PIN_2,
-			   GPIO_DIR_IN | GPIO_INT | PULL_UP | EDGE);
-	gpio_pin_configure(gpiob, PIN_3,
-			   GPIO_DIR_IN | GPIO_INT | PULL_UP | EDGE);
-	gpio_pin_configure(gpiob, PIN_4,
-			   GPIO_DIR_IN | GPIO_INT | PULL_UP | EDGE);
-
-	gpio_init_callback(&gpio_cb, button_pressed,
-	BIT(PIN_1) | BIT(PIN_2) | BIT(PIN_3) | BIT(PIN_4));
-
-	gpio_add_callback(gpiob, &gpio_cb);
-	gpio_pin_enable_callback(gpiob, PIN_1);
-	gpio_pin_enable_callback(gpiob, PIN_2);
-	gpio_pin_enable_callback(gpiob, PIN_3);
-	gpio_pin_enable_callback(gpiob, PIN_4);
 }
 
 /**
@@ -302,7 +225,11 @@ int main(void)
 
 	log_init();
 
-	gpiob_init();
+	err = dk_buttons_init(button_pressed);
+
+	if (err) {
+		printk("buttons init error %d", err);
+	}
 
 	/* TNEP init */
 
