@@ -4,6 +4,10 @@
 # SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
 #
 
-config NFC_TNEP
+config NFC_TNEP_TAG
 	bool
-	prompt "Tag NDEF Exchange Protocol."
+	prompt "Tag NDEF Exchange Protocol The NFC Tag Device."
+
+config NFC_TNEP_POLLER
+	bool
+	prompt "Tag NDEF Exchange Protocol The Reader/Wrter Device."
