@@ -1,0 +1,9 @@
+sample:
+  description: tnep sample using RAM buffer
+  name: tnep_local_buffer
+tests:
+  test_build:
+    build_only: true
+    build_on_all: false
+    platform_whitelist: nrf52840_pca10056 nrf52_pca10040 native_posix
+    tags: ci_build
