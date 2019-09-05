@@ -11,23 +11,6 @@
 #include "protocol_timer.h"
 #include <logging/log.h>
 
-
-#define TNEP_MASKED_VALUE(x, mask) ((x > mask)?mask:(x & mask))
-
-#define NFC_TNEP_MAX_EXEC_MASK (0x0fU)
-#define NFC_TNEP_MAX_EXEC_NO(N_wait) TNEP_MASKED_VALUE(N_wait,\
-					NFC_TNEP_MAX_EXEC_MASK)
-/*TODO:
- * Minimum waiting time.
- * WT_INT contains the 6 least significant bits
- * of the minimum waiting time field.
- * t_wait = 2^(WT_INIT/4 - 1) [ms].
- * WT_INT value between 0 and 63.
- */
-#define NFC_TNEP_WT_INIT_MASK (0x3f)
-#define NFC_TNEP_WT_INT(wt_init) TNEP_MASKED_VALUE(wt_init,\
-						  NFC_TNEP_WT_INIT_MASK)
-#define NFC_TNEP_MIN_WAIT_TIME(x) ((x > 4)?(1<<(NFC_TNEP_WT_INT(x)/4 - 1)):1U)
 LOG_MODULE_REGISTER(nfc_tnep_tag);
 
 enum tnep_signal_msg_rx {
