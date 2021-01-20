@@ -129,6 +129,11 @@ manifest:
     - name: HomeKitADK
       path: homekit
       remote: apple
+      groups:
+      - homekit
+
+  groups:
+    - homekit
 
   # West-related configuration for the nrf repository.
   self:
