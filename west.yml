@@ -133,7 +133,7 @@ manifest:
       - homekit
 
   groups:
-    - homekit
+    - -homekit
 
   # West-related configuration for the nrf repository.
   self:
