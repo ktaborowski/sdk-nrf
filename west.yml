@@ -41,6 +41,12 @@ manifest:
   defaults:
     remote: ncs
 
+  # Inside "projects", you can add a project to one or more groups.
+  # All groups are allowed by default. You can block group
+  # by adding the dash (-)prefix before it's name.
+  groups:
+    - -homekit
+
   # "projects" is a list of git repositories which make up the NCS
   # source code.
   projects:
@@ -131,9 +137,6 @@ manifest:
       remote: apple
       groups:
       - homekit
-
-  groups:
-    - -homekit
 
   # West-related configuration for the nrf repository.
   self:
