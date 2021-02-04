@@ -39,6 +39,8 @@ manifest:
   defaults:
     remote: ncs
 
+  group-filter: [-private, -homekit]
+
   # "projects" is a list of git repositories which make up the NCS
   # source code.
   projects:
@@ -129,6 +131,12 @@ manifest:
       path: modules/alexa-embedded
       revision: face92d8c62184832793f518bb1f19379538c5c1
       remote: alexa
+    - name: homekit
+      repo-path: sdk-homekit
+      revision: pull/17/head
+      groups:
+      - private
+      - homekit
 
   # West-related configuration for the nrf repository.
   self:
