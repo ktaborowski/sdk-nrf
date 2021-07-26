@@ -165,8 +165,8 @@ manifest:
       revision: 24f1b2b0c64c694b7f9ac1b7eab60b39236ca0bf
       path: modules/lib/cddl-gen
     - name: homekit
-      repo-path: sdk-homekit
-      revision: b49ebe8dcd2e0c0032d5fbc47e25fbeb389fa4ff
+      url: https://github.com/ktaborowski/sdk-homekit
+      revision: KRKNWK-9752-accessory-fails-to-start-after-factory-reset-attem
       groups:
       - homekit
     - name: find-my
