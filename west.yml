@@ -20,6 +20,8 @@ manifest:
     # NCS repositories are hosted here.
     - name: ncs
       url-base: https://github.com/nrfconnect
+    - name: krta
+      url-base: https://github.com/ktaborowski
     # Third-party repository sources:
     - name: zephyrproject
       url-base: https://github.com/zephyrproject-rtos
@@ -187,7 +189,8 @@ manifest:
           compare-by-default: false
     - name: sidewalk
       repo-path: sdk-sidewalk
-      revision: 9673888fabffd6d556c932007abd2cdb87a2add5
+      remote: krta
+      revision: bt_playground
       submodules: true
       groups:
         - sidewalk
