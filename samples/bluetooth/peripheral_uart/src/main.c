@@ -598,6 +598,23 @@ int main(void)
 	}
 
 	err = bt_enable(NULL);
+	LOG_INF("bt_enable 1st status: %d", err);
+	if (err) {
+		error();
+	}
+
+	k_sleep(K_MSEC(500));
+
+	err = bt_disable();
+	LOG_INF("bt_disable status: %d", err);
+	if (err) {
+		error();
+	}
+
+	k_sleep(K_MSEC(500));
+
+	err = bt_enable(NULL);
+	LOG_INF("bt_enable 2nd status: %d", err);
 	if (err) {
 		error();
 	}
