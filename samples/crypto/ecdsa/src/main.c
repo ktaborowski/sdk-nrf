@@ -16,16 +16,16 @@
 #include <tfm_ns_interface.h>
 #endif
 
-#define APP_SUCCESS		(0)
-#define APP_ERROR		(-1)
+#define APP_SUCCESS	    (0)
+#define APP_ERROR	    (-1)
 #define APP_SUCCESS_MESSAGE "Example finished successfully!"
-#define APP_ERROR_MESSAGE "Example exited with error!"
+#define APP_ERROR_MESSAGE   "Example exited with error!"
 
-#define PRINT_HEX(p_label, p_text, len)\
-	({\
-		LOG_INF("---- %s (len: %u): ----", p_label, len);\
-		LOG_HEXDUMP_INF(p_text, len, "Content:");\
-		LOG_INF("---- %s end  ----", p_label);\
+#define PRINT_HEX(p_label, p_text, len)                                                            \
+	({                                                                                         \
+		LOG_INF("---- %s (len: %u): ----", p_label, len);                                  \
+		LOG_HEXDUMP_INF(p_text, len, "Content:");                                          \
+		LOG_INF("---- %s end  ----", p_label);                                             \
 	})
 
 LOG_MODULE_REGISTER(ecdsa, LOG_LEVEL_DBG);
@@ -36,21 +36,16 @@ LOG_MODULE_REGISTER(ecdsa, LOG_LEVEL_DBG);
 #define NRF_CRYPTO_EXAMPLE_ECDSA_TEXT_SIZE (100)
 
 #define NRF_CRYPTO_EXAMPLE_ECDSA_PUBLIC_KEY_SIZE (65)
-#define NRF_CRYPTO_EXAMPLE_ECDSA_SIGNATURE_SIZE (64)
-#define NRF_CRYPTO_EXAMPLE_ECDSA_HASH_SIZE (32)
+#define NRF_CRYPTO_EXAMPLE_ECDSA_SIGNATURE_SIZE	 (64)
+#define NRF_CRYPTO_EXAMPLE_ECDSA_HASH_SIZE	 (32)
 
 /* Below text is used as plaintext for signing/verification */
 static uint8_t m_plain_text[NRF_CRYPTO_EXAMPLE_ECDSA_TEXT_SIZE] = {
-	"Example string to demonstrate basic usage of ECDSA."
-};
-
-static uint8_t m_pub_key[NRF_CRYPTO_EXAMPLE_ECDSA_PUBLIC_KEY_SIZE];
+	"Example string to demonstrate basic usage of ECDSA."};
 
 static uint8_t m_signature[NRF_CRYPTO_EXAMPLE_ECDSA_SIGNATURE_SIZE];
-static uint8_t m_hash[NRF_CRYPTO_EXAMPLE_ECDSA_HASH_SIZE];
 
-static psa_key_id_t keypair_id;
-static psa_key_id_t pub_key_id;
+static psa_key_id_t priv_key_id = PSA_KEY_ID_USER_MIN;
 /* ====================================================================== */
 
 int crypto_init(void)
@@ -72,13 +67,7 @@ int crypto_finish(void)
 	psa_status_t status;
 
 	/* Destroy the key handle */
-	status = psa_destroy_key(keypair_id);
-	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_destroy_key failed! (Error: %d)", status);
-		return APP_ERROR;
-	}
-
-	status = psa_destroy_key(pub_key_id);
+	status = psa_destroy_key(priv_key_id);
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_destroy_key failed! (Error: %d)", status);
 		return APP_ERROR;
@@ -87,62 +76,38 @@ int crypto_finish(void)
 	return APP_SUCCESS;
 }
 
-int generate_ecdsa_keypair(void)
+int prepare_ecdsa_private_key(void)
 {
 	psa_status_t status;
-	size_t olen;
+	psa_key_id_t id;
 
-	LOG_INF("Generating random ECDSA keypair...");
+	uint8_t raw_key[] = {0x2d, 0x34, 0x22, 0x89, 0xd1, 0x5c, 0x21, 0x87, 0x8c, 0x05, 0xc9,
+			     0x10, 0x58, 0x1a, 0x85, 0x49, 0x5e, 0x49, 0x66, 0xe6, 0xeb, 0x71,
+			     0x67, 0x6d, 0xde, 0x44, 0x51, 0x5b, 0x15, 0x2b, 0x81, 0x9f};
+
+	LOG_INF("Prepare ECDSA private key...");
 
 	/* Configure the key attributes */
 	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
 
 	/* Configure the key attributes */
 	psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_SIGN_HASH);
-	psa_set_key_lifetime(&key_attributes, PSA_KEY_LIFETIME_VOLATILE);
 	psa_set_key_algorithm(&key_attributes, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
 	psa_set_key_type(&key_attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
 	psa_set_key_bits(&key_attributes, 256);
 
-	/* Generate a random keypair. The keypair is not exposed to the application,
-	 * we can use it to sign hashes.
-	 */
-	status = psa_generate_key(&key_attributes, &keypair_id);
-	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_generate_key failed! (Error: %d)", status);
-		return APP_ERROR;
-	}
+	/* Persistent key specific settings */
+	psa_set_key_lifetime(&key_attributes, PSA_KEY_LIFETIME_PERSISTENT);
+	psa_set_key_id(&key_attributes, priv_key_id);
 
-	/* Export the public key */
-	status = psa_export_public_key(keypair_id, m_pub_key, sizeof(m_pub_key), &olen);
-	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_export_public_key failed! (Error: %d)", status);
-		return APP_ERROR;
-	}
-
-	/* Reset key attributes and free any allocated resources. */
-	psa_reset_key_attributes(&key_attributes);
-
-	return APP_SUCCESS;
-}
-
-int import_ecdsa_pub_key(void)
-{
-	/* Configure the key attributes */
-	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
-	psa_status_t status;
-
-	/* Configure the key attributes */
-	psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_VERIFY_HASH);
-	psa_set_key_lifetime(&key_attributes, PSA_KEY_LIFETIME_VOLATILE);
-	psa_set_key_algorithm(&key_attributes, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
-	psa_set_key_type(&key_attributes, PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1));
-	psa_set_key_bits(&key_attributes, 256);
-
-	status = psa_import_key(&key_attributes, m_pub_key, sizeof(m_pub_key), &pub_key_id);
+	/* Generate a key pair */
+	status = psa_import_key(&key_attributes, raw_key, sizeof(raw_key), &id);
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_import_key failed! (Error: %d)", status);
 		return APP_ERROR;
+	}
+	if (priv_key_id != id) {
+		LOG_ERR("Invalid key id %d != %d", priv_key_id, id);
 	}
 
 	/* Reset key attributes and free any allocated resources. */
@@ -158,26 +123,9 @@ int sign_message(void)
 
 	LOG_INF("Signing a message using ECDSA...");
 
-	/* Compute the SHA256 hash*/
-	status = psa_hash_compute(PSA_ALG_SHA_256,
-				  m_plain_text,
-				  sizeof(m_plain_text),
-				  m_hash,
-				  sizeof(m_hash),
+	status = psa_sign_message(priv_key_id, PSA_ALG_ECDSA(PSA_ALG_SHA_256), m_plain_text,
+				  sizeof(m_plain_text), m_signature, sizeof(m_signature),
 				  &output_len);
-	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_hash_compute failed! (Error: %d)", status);
-		return APP_ERROR;
-	}
-
-	/* Sign the hash */
-	status = psa_sign_hash(keypair_id,
-			       PSA_ALG_ECDSA(PSA_ALG_SHA_256),
-			       m_hash,
-			       sizeof(m_hash),
-			       m_signature,
-			       sizeof(m_signature),
-			       &output_len);
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_sign_hash failed! (Error: %d)", status);
 		return APP_ERROR;
@@ -185,31 +133,7 @@ int sign_message(void)
 
 	LOG_INF("Message signed successfully!");
 	PRINT_HEX("Plaintext", m_plain_text, sizeof(m_plain_text));
-	PRINT_HEX("SHA256 hash", m_hash, sizeof(m_hash));
 	PRINT_HEX("Signature", m_signature, sizeof(m_signature));
-
-	return APP_SUCCESS;
-}
-
-int verify_message(void)
-{
-	psa_status_t status;
-
-	LOG_INF("Verifying ECDSA signature...");
-
-	/* Verify the signature of the hash */
-	status = psa_verify_hash(pub_key_id,
-				 PSA_ALG_ECDSA(PSA_ALG_SHA_256),
-				 m_hash,
-				 sizeof(m_hash),
-				 m_signature,
-				 sizeof(m_signature));
-	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_verify_hash failed! (Error: %d)", status);
-		return APP_ERROR;
-	}
-
-	LOG_INF("Signature verification was successful!");
 
 	return APP_SUCCESS;
 }
@@ -226,25 +150,13 @@ int main(void)
 		return APP_ERROR;
 	}
 
-	status = generate_ecdsa_keypair();
-	if (status != APP_SUCCESS) {
-		LOG_INF(APP_ERROR_MESSAGE);
-		return APP_ERROR;
-	}
-
-	status = import_ecdsa_pub_key();
+	status = prepare_ecdsa_private_key();
 	if (status != APP_SUCCESS) {
 		LOG_INF(APP_ERROR_MESSAGE);
 		return APP_ERROR;
 	}
 
 	status = sign_message();
-	if (status != APP_SUCCESS) {
-		LOG_INF(APP_ERROR_MESSAGE);
-		return APP_ERROR;
-	}
-
-	status = verify_message();
 	if (status != APP_SUCCESS) {
 		LOG_INF(APP_ERROR_MESSAGE);
 		return APP_ERROR;
