@@ -16,6 +16,8 @@
 #include <tfm_ns_interface.h>
 #endif
 
+#include "trusted_storage_init.h"
+
 #define APP_SUCCESS	    (0)
 #define APP_ERROR	    (-1)
 #define APP_SUCCESS_MESSAGE "Example finished successfully!"
@@ -45,12 +47,16 @@ static uint8_t m_plain_text[NRF_CRYPTO_EXAMPLE_ECDSA_TEXT_SIZE] = {
 
 static uint8_t m_signature[NRF_CRYPTO_EXAMPLE_ECDSA_SIGNATURE_SIZE];
 
-static psa_key_id_t priv_key_id = PSA_KEY_ID_USER_MIN;
+static psa_key_id_t priv_key_id = PSA_KEY_ID_USER_MIN + 1;
 /* ====================================================================== */
 
 int crypto_init(void)
 {
 	psa_status_t status;
+
+#ifdef CONFIG_TRUSTED_STORAGE_BACKEND_AEAD_KEY_DERIVE_FROM_HUK
+	write_huk();
+#endif /* CONFIG_TRUSTED_STORAGE_BACKEND_AEAD_KEY_DERIVE_FROM_HUK */
 
 	/* Initialize PSA Crypto */
 	status = psa_crypto_init();

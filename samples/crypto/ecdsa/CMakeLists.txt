@@ -12,3 +12,6 @@ project(ecdsa)
 
 target_sources(app PRIVATE
         src/main.c)
+
+target_sources_ifdef(CONFIG_TRUSTED_STORAGE app PRIVATE
+        src/trusted_storage_init.c)
