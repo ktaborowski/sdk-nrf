@@ -88,6 +88,11 @@ int generate_persistent_key(void)
 {
 	psa_status_t status;
 
+	uint8_t raw_key[] = {
+		0x2d, 0x34, 0x22, 0x89, 0xd1, 0x5c, 0x21, 0x87,
+		0x8c, 0x05, 0xc9, 0x10, 0x58, 0x1a, 0x85, 0x49,
+	};
+
 	LOG_INF("Generating random persistent AES key...");
 
 	/* Configure the key attributes */
@@ -105,9 +110,9 @@ int generate_persistent_key(void)
 	/* Generate a random AES key with persistent lifetime. The key can be used for
 	 * encryption/decryption using the key_id.
 	 */
-	status = psa_generate_key(&key_attributes, &key_id);
+	status = psa_import_key(&key_attributes, raw_key, sizeof(raw_key), &key_id);
 	if (status != PSA_SUCCESS) {
-		LOG_INF("psa_generate_key failed! (Error: %d)", status);
+		LOG_INF("psa_import_key failed! (Error: %d)", status);
 		return APP_ERROR;
 	}
 

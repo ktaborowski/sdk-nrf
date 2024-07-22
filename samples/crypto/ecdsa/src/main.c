@@ -110,6 +110,14 @@ int prepare_ecdsa_private_key(void)
 		LOG_ERR("Invalid key id %d != %d", priv_key_id, id);
 	}
 
+	/* Make sure the key is not in memory anymore, has the same affect then resetting the device
+	 */
+	status = psa_purge_key(priv_key_id);
+	if (status != PSA_SUCCESS) {
+		LOG_INF("psa_purge_key failed! (Error: %d)", status);
+		return APP_ERROR;
+	}
+
 	/* Reset key attributes and free any allocated resources. */
 	psa_reset_key_attributes(&key_attributes);
 
