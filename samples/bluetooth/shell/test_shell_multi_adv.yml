@@ -6,8 +6,8 @@
 # Create first advertising set
 - command: "multi_adv create 0 non-connectable scannable"
   expected: ".*Created advertiser\\[0\\].*"
-# Set advertising data
-- command: "multi_adv data 0 name \"Nordic Beacon\" flags"
+# Set scan response data (required for scannable advertiser)
+- command: "multi_adv data 0 scan-response name \"Nordic Beacon\" flags"
   expected: ".*Set data for advertiser\\[0\\].*"
 # Start advertising
 - command: "multi_adv start 0"

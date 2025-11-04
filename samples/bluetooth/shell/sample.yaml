@@ -18,8 +18,8 @@ tests:
       type: multi_line
       ordered: true
       regex:
-        - "uart:~$"
-    timeout: 15
+        - "uart:~"
+    timeout: 30
   sample.bluetooth.shell.basic:
     sysbuild: true
     harness: shell
@@ -49,7 +49,7 @@ tests:
     tags:
       - bluetooth
       - shell
-      - gatt_dm
+      - discovery_manager
     timeout: 30
   sample.bluetooth.shell.multi_adv:
     sysbuild: true

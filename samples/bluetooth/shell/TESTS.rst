@@ -57,8 +57,8 @@ Run tests automatically using Twister:
    # Run all tests
    twister -p nrf54l15dk/nrf54l15/cpuapp -T nrf/samples/bluetooth/shell
 
-   # Run specific test
-   twister -p nrf54l15dk/nrf54l15/cpuapp -T nrf/samples/bluetooth/shell -s sample.bluetooth.shell.basic
+   # Run specific test (use --test-pattern with regex pattern)
+   twister -p nrf54l15dk/nrf54l15/cpuapp -T nrf/samples/bluetooth/shell --test-pattern ".*sample\.bluetooth\.shell\.basic.*"
 
    # Run with device testing (requires connected hardware)
    twister -p nrf54l15dk/nrf54l15/cpuapp --device-testing --device-serial /dev/ttyACM1 -T nrf/samples/bluetooth/shell
@@ -132,7 +132,7 @@ Test: Complete Workflow - Multiple Advertising Sets
 
    uart:~$ bt init
    uart:~$ multi_adv create 0 non-connectable scannable
-   uart:~$ multi_adv data 0 name "Nordic Beacon" flags
+   uart:~$ multi_adv data 0 scan-response name "Nordic Beacon" flags
    uart:~$ multi_adv start 0
    uart:~$ multi_adv create 1 connectable interval-min 100 interval-max 150
    uart:~$ multi_adv data 1 name "Nordic Shell" flags
