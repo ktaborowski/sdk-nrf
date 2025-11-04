@@ -254,6 +254,91 @@ This must be called before starting a new discovery if the previous one complete
    [... next service discovered ...]
    uart:~$ gatt_dm release
 
+Multiple Advertising Sets
+==========================
+
+The Multiple Advertising Sets feature allows you to create and manage multiple simultaneous Bluetooth advertising sets. This is useful for scenarios where you want to advertise different services or data on different advertising sets.
+
+**Create an advertising set:**
+
+Create a new advertising set at a specific index::
+
+   uart:~$ multi_adv create 0 connectable interval-min 100 interval-max 150
+
+Options:
+* ``connectable`` - Make the advertising set connectable
+* ``non-connectable`` - Make the advertising set non-connectable (default)
+* ``scannable`` - Make the advertising set scannable
+* ``interval-min <ms>`` - Minimum advertising interval in milliseconds
+* ``interval-max <ms>`` - Maximum advertising interval in milliseconds
+* ``sid <id>`` - Advertising set ID (0-15, defaults to index if not specified)
+
+**Set advertising data:**
+
+Set advertising data for a specific advertising set::
+
+   uart:~$ multi_adv data 0 name "Nordic Beacon" flags
+
+   uart:~$ multi_adv data 1 name "Nordic Shell" scan-response name "Extended Info"
+
+Options:
+* ``name <name>`` - Set device name in advertising data
+* ``flags`` - Add flags (LE General Discoverable, BR/EDR not supported)
+* ``scan-response`` - Switch to scan response data (use before subsequent options)
+
+**Start advertising:**
+
+Start advertising on a specific advertising set::
+
+   uart:~$ multi_adv start 0
+
+   uart:~$ multi_adv start 1 timeout 5000 num-events 10
+
+Options:
+* ``timeout <ms>`` - Maximum advertising duration in milliseconds
+* ``num-events <count>`` - Maximum number of advertising events
+
+**Stop advertising:**
+
+Stop advertising on a specific advertising set::
+
+   uart:~$ multi_adv stop 0
+
+**Delete advertising set:**
+
+Delete an advertising set to free up resources::
+
+   uart:~$ multi_adv delete 0
+
+**List all advertising sets:**
+
+View the status of all advertising sets::
+
+   uart:~$ multi_adv list
+
+**Bulk operations:**
+
+Start all created advertising sets::
+
+   uart:~$ multi_adv start-all
+
+Stop all started advertising sets::
+
+   uart:~$ multi_adv stop-all
+
+**Example workflow:**
+
+Create and start two advertising sets::
+
+   uart:~$ bt init
+   uart:~$ multi_adv create 0 non-connectable scannable
+   uart:~$ multi_adv data 0 name "Nordic Beacon" flags
+   uart:~$ multi_adv start 0
+   uart:~$ multi_adv create 1 connectable interval-min 100 interval-max 150
+   uart:~$ multi_adv data 1 name "Nordic Shell" flags
+   uart:~$ multi_adv start 1
+   uart:~$ multi_adv list
+
 Useful commands
 ===============
 
@@ -285,6 +370,16 @@ Useful commands
 * ``gatt_dm continue`` - Continue discovery to find next service (after ``discover-all``)
 * ``gatt_dm release`` - Release discovery data to allow new discovery
 
+**Multiple Advertising Sets commands:**
+* ``multi_adv create <index> [options]`` - Create an advertising set at specified index
+* ``multi_adv data <index> [data options]`` - Set advertising data for an advertising set
+* ``multi_adv start <index> [timeout <ms>] [num-events <count>]`` - Start advertising on a set
+* ``multi_adv stop <index>`` - Stop advertising on a set
+* ``multi_adv delete <index>`` - Delete an advertising set
+* ``multi_adv list`` - List all advertising sets and their status
+* ``multi_adv start-all`` - Start all created advertising sets
+* ``multi_adv stop-all`` - Stop all started advertising sets
+
 **Helper commands:**
 * ``gatt show-db`` - View discovered GATT database
 * ``gatt att_mtu`` - Check ATT MTU size
@@ -305,4 +400,8 @@ This sample uses the following Zephyr components:
 This sample also uses the following NCS libraries:
 
 * :ref:`gatt_dm_readme`: GATT Discovery Manager for simplified service discovery
+
+Extended Advertising support:
+* :kconfig:option:`CONFIG_BT_EXT_ADV`: Extended Advertising API support
+* :kconfig:option:`CONFIG_BT_EXT_ADV_MAX_ADV_SET`: Maximum number of simultaneous advertising sets
 
