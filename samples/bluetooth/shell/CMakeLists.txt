@@ -9,3 +9,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(bluetooth_shell)
 
 target_sources(app PRIVATE src/main.c)
+target_sources_ifdef(CONFIG_BT_GATT_DM app PRIVATE src/shell_gatt_dm.c)

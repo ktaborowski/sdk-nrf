@@ -23,6 +23,7 @@ The sample enables the following Bluetooth shell commands:
 * Scanning with filters (name, address, RSSI)
 * Connection management
 * GATT service and characteristic discovery
+* GATT Discovery Manager for simplified service discovery
 * Reading and writing GATT characteristics
 * Subscribing to notifications and indications
 * Dynamic GATT database management
@@ -194,6 +195,65 @@ This command:
 * Automatically connects when the device is found
 * Uses a default timeout of 10 seconds
 
+GATT Discovery Manager
+======================
+
+The GATT Discovery Manager provides simplified service discovery with automatic parsing of services, characteristics, and descriptors.
+
+**Discover all services:**
+
+After connecting to a device, discover all services::
+
+   uart:~$ gatt_dm discover-all
+
+Or specify a connection index (from ``bt connections`` output)::
+
+   uart:~$ gatt_dm discover-all 0
+
+The discovery results show:
+* Service UUID
+* Total attribute count
+* Detailed attribute list (services, characteristics, descriptors)
+
+**Continue discovery:**
+
+After discovering a service, continue to find the next service::
+
+   uart:~$ gatt_dm continue
+
+Repeat this command to discover all services sequentially.
+
+**Discover specific service by UUID:**
+
+Discover a specific service by its UUID::
+
+   uart:~$ gatt_dm discover-uuid 0x180F
+
+This is useful when you know which service you're looking for (e.g., Battery Service: ``0x180F``, Heart Rate Service: ``0x180D``).
+
+**Release discovery data:**
+
+Release discovery data when finished::
+
+   uart:~$ gatt_dm release
+
+This must be called before starting a new discovery if the previous one completed successfully.
+
+**Example workflow:**
+
+::
+
+   uart:~$ bt connect DE:AD:ED:66:71:59 random
+   uart:~$ gatt_dm discover-all
+   Discovery completed:
+     Service UUID: 0000180f-0000-1000-8000-00805f9b34fb
+     Attribute count: 5
+   [... detailed attribute list ...]
+   Use 'gatt_dm continue' to find next service or 'gatt_dm release' to finish
+   uart:~$ gatt_dm continue
+   [... next service discovered ...]
+   uart:~$ gatt_dm release
+
 Useful commands
 ===============
 
@@ -219,6 +279,12 @@ Useful commands
 * ``gatt write <handle> <offset> <hex_data>`` - Write characteristic
 * ``gatt subscribe <ccc_handle> <value_handle>`` - Subscribe to notifications
 
+**GATT Discovery Manager commands:**
+* ``gatt_dm discover-all [conn_idx]`` - Discover all services on a connection
+* ``gatt_dm discover-uuid <uuid> [conn_idx]`` - Discover specific service by UUID (e.g., ``0x180F``)
+* ``gatt_dm continue`` - Continue discovery to find next service (after ``discover-all``)
+* ``gatt_dm release`` - Release discovery data to allow new discovery
+
 **Helper commands:**
 * ``gatt show-db`` - View discovered GATT database
 * ``gatt att_mtu`` - Check ATT MTU size
@@ -235,4 +301,8 @@ This sample uses the following Zephyr components:
   * Bluetooth Shell module
   * GATT Client support
   * GATT Dynamic Database support
+
+This sample also uses the following NCS libraries:
+
+* :ref:`gatt_dm_readme`: GATT Discovery Manager for simplified service discovery
 
