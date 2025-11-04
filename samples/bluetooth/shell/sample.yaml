@@ -1,0 +1,22 @@
+sample:
+  description: Bluetooth Shell sample, demonstrates Bluetooth
+    shell commands
+  name: Bluetooth Shell
+tests:
+  sample.bluetooth.shell:
+    sysbuild: true
+    integration_platforms:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    platform_allow:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    tags:
+      - bluetooth
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "uart:~$"
+    timeout: 15
