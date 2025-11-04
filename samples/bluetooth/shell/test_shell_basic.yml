@@ -1,0 +1,14 @@
+# Basic command validation tests for Bluetooth Shell sample
+# These tests verify command availability and initialization
+
+- command: "bt init"
+  expected: ".*Bluetooth initialized.*|.*Identity.*|.*HCI.*"
+- command: "help"
+  expected: ".*gatt_dm.*"
+- command: "help"
+  expected: ".*multi_adv.*"
+- command: "gatt_dm"
+  expected: ".*discover-all.*"
+- command: "multi_adv"
+  expected: ".*create.*"
+

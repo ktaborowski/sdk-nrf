@@ -1,0 +1,9 @@
+# GATT Discovery Manager tests
+# These tests validate command syntax and basic functionality
+
+- command: "bt init"
+  expected: ".*Bluetooth initialized.*|.*Identity.*"
+# Test valid UUID format (command syntax validation)
+- command: "gatt_dm discover-uuid 0x180F"
+  expected: ".*No connection available.*|.*not found.*|.*Starting discovery.*"
+

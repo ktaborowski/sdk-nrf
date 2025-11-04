@@ -20,3 +20,50 @@ tests:
       regex:
         - "uart:~$"
     timeout: 15
+  sample.bluetooth.shell.basic:
+    sysbuild: true
+    harness: shell
+    harness_config:
+      shell_commands_file: test_shell_basic.yml
+    integration_platforms:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    platform_allow:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    tags:
+      - bluetooth
+      - shell
+    timeout: 30
+  sample.bluetooth.shell.gatt_dm:
+    sysbuild: true
+    harness: shell
+    harness_config:
+      shell_commands_file: test_shell_gatt_dm.yml
+    integration_platforms:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    platform_allow:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    tags:
+      - bluetooth
+      - shell
+      - gatt_dm
+    timeout: 30
+  sample.bluetooth.shell.multi_adv:
+    sysbuild: true
+    harness: shell
+    harness_config:
+      shell_commands_file: test_shell_multi_adv.yml
+    integration_platforms:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    platform_allow:
+      - nrf52840dk/nrf52840
+      - nrf54l15dk/nrf54l15/cpuapp
+    tags:
+      - bluetooth
+      - shell
+      - multi_adv
+    timeout: 60

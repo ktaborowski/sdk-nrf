@@ -1,0 +1,39 @@
+# Multiple Advertising Sets tests
+# Complete workflow test covering create, configure, start, list, stop, and delete operations
+
+- command: "bt init"
+  expected: ".*Bluetooth initialized.*|.*Identity.*"
+# Create first advertising set
+- command: "multi_adv create 0 non-connectable scannable"
+  expected: ".*Created advertiser\\[0\\].*"
+# Set advertising data
+- command: "multi_adv data 0 name \"Nordic Beacon\" flags"
+  expected: ".*Set data for advertiser\\[0\\].*"
+# Start advertising
+- command: "multi_adv start 0"
+  expected: ".*Started advertiser\\[0\\].*"
+# Create second advertising set with options
+- command: "multi_adv create 1 connectable interval-min 100 interval-max 150"
+  expected: ".*Created advertiser\\[1\\].*"
+# Set data for second set
+- command: "multi_adv data 1 name \"Nordic Shell\" flags"
+  expected: ".*Set data for advertiser\\[1\\].*"
+# Start second set
+- command: "multi_adv start 1"
+  expected: ".*Started advertiser\\[1\\].*"
+# List all advertising sets
+- command: "multi_adv list"
+  expected: ".*Index.*State.*SID.*"
+- command: "multi_adv list"
+  expected: ".*0.*started.*"
+- command: "multi_adv list"
+  expected: ".*1.*started.*"
+# Stop all advertising sets
+- command: "multi_adv stop-all"
+  expected: ".*Stopped.*advertiser.*"
+# Delete advertising sets
+- command: "multi_adv delete 0"
+  expected: ".*Deleted advertiser\\[0\\].*"
+- command: "multi_adv delete 1"
+  expected: ".*Deleted advertiser\\[1\\].*"
+
