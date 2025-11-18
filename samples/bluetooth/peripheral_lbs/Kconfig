@@ -22,4 +22,13 @@ config BT_LBS_SECURITY_ENABLED
 	help
 	  "Enable BLE security for the LED-Button service"
 
+config BT_LBS_PAIRING_MODE
+	bool "Enable pairing mode"
+	default y
+	depends on BT_LBS_SECURITY_ENABLED
+	select BT_FILTER_ACCEPT_LIST
+	select BT_PRIVACY
+	help
+	  "Enable BLE accept list and privacy addresses"
+
 endmenu
