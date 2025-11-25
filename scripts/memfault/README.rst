@@ -18,6 +18,9 @@ The script scans for the :ref:`mds_readme` UUID in the advertising packets.
 Once it finds the MDS service UUID, it connects to the remote device and reads the MDS data.
 The scripts waits for the MDS notifications and forwards them to the URI read from the URI characteristics.
 
+The script uses abstraction layers for BLE and HTTP operations, allowing easy replacement of
+underlying libraries. By default, it uses ``pc_ble_driver_py`` for BLE and ``requests`` for HTTP.
+
 For more details about the Memfault, see `Memfault SDK`_ and :ref:`ug_memfault` for details on integration with the |NCS|.
 
 Requirements
@@ -75,10 +78,41 @@ For example:
 
    python3 mds_ble_gateway.py --snr 68290047 --com /dev/ttyACM0
 
+Configuration
+*************
+
+The script supports configuration via environment variables to select different BLE and HTTP
+library implementations.
+
+Set environment variables to configure library selection:
+
+.. code-block:: console
+
+   export MDS_BLE_LIBRARY=pc_ble_driver_py
+   export MDS_HTTP_LIBRARY=requests
+   python3 mds_ble_gateway.py --snr 68290047 --com /dev/ttyACM0
+
+By default, the script uses ``pc_ble_driver_py`` for BLE and ``requests`` for HTTP if no
+environment variables are set.
+
+Architecture
+************
+
+The script uses abstraction layers to separate the main application logic from
+library-specific implementations:
+
+   * ``BLEInterface`` - Abstract interface for BLE operations
+   * ``HTTPInterface`` - Abstract interface for HTTP operations
+   * ``PCBLEDriverPyBLE`` - Implementation using pc_ble_driver_py
+   * ``RequestsHTTP`` - Implementation using requests library
+
+This architecture allows easy replacement of BLE or HTTP libraries by implementing
+the respective interfaces without modifying the main application logic.
+
 Dependencies
 ************
 
 The script uses the following Python libraries:
 
-   * `pc-ble-driver-py`_
-   * `Requests`_
+   * `pc-ble-driver-py`_ (default BLE implementation)
+   * `Requests`_ (default HTTP implementation)
