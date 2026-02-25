@@ -7,13 +7,45 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/poweroff.h>
 
-#include <dk_buttons_and_leds.h>
+#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE)
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/devicetree.h>
+#endif
 
+#define SYSTEM_OFF_DELAY 1
+
+static void system_off_work_handler(struct k_work *work);
+static K_WORK_DELAYABLE_DEFINE(system_off_work, system_off_work_handler);
+
+static void system_off(void)
+{
+#if !IS_ENABLED(CONFIG_SOC_SERIES_NRF54H)
+#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE) && DT_NODE_EXISTS(DT_ALIAS(sw0))
+	/* Configure button 1 (sw0) as wake source from system off (level-active). */
+	static const struct gpio_dt_spec sw0 = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
+
+	if (gpio_is_ready_dt(&sw0)) {
+		(void)gpio_pin_configure_dt(&sw0, GPIO_INPUT);
+		(void)gpio_pin_interrupt_configure_dt(&sw0, GPIO_INT_LEVEL_ACTIVE);
+	}
+#endif
+	sys_poweroff();
+#endif
+}
+
+static void system_off_work_handler(struct k_work *work)
+{
+	system_off();
+}
+
+#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE)
+
+#include <dk_buttons_and_leds.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 
 #define CONNECTABLE_ADV_BUTTON DK_BTN1_MSK
-#define SYSTEM_OFF_DELAY       1
+#define POWER_OFF_BUTTON       DK_BTN2_MSK
 
 #define CONNECTABLE_ADV_TIMEOUT     CONFIG_BT_POWER_PROFILING_CONNECTABLE_ADV_DURATION
 #define CONNECTABLE_ADV_INTERVAL_MIN CONFIG_BT_POWER_PROFILING_CONNECTABLE_ADV_INTERVAL_MIN
@@ -32,9 +64,6 @@ static const struct bt_le_adv_param *connectable_ad_params =
 			CONNECTABLE_ADV_INTERVAL_MIN,
 			CONNECTABLE_ADV_INTERVAL_MAX,
 			NULL);
-
-static void system_off_work_handler(struct k_work *work);
-static K_WORK_DELAYABLE_DEFINE(system_off_work, system_off_work_handler);
 
 static void connected(struct bt_conn *conn, uint8_t conn_err)
 {
@@ -55,18 +84,6 @@ BT_CONN_CB_DEFINE(connection_cb) = {
 	.disconnected = disconnected,
 };
 
-static void system_off(void)
-{
-#if !IS_ENABLED(CONFIG_SOC_SERIES_NRF54H)
-	sys_poweroff();
-#endif
-}
-
-static void system_off_work_handler(struct k_work *work)
-{
-	system_off();
-}
-
 static void advertising_terminated(struct bt_le_ext_adv *adv,
 				  struct bt_le_ext_adv_sent_info *info)
 {
@@ -81,7 +98,19 @@ static const struct bt_le_ext_adv_cb adv_callbacks = {
 
 static void button_handler(uint32_t button_state, uint32_t has_changed)
 {
-	if (!(button_state & has_changed & CONNECTABLE_ADV_BUTTON)) {
+	uint32_t buttons = button_state & has_changed;
+
+	if (buttons & POWER_OFF_BUTTON) {
+		/* Disconnect if connected and schedule power off. */
+		k_work_cancel_delayable(&system_off_work);
+		if (device_conn) {
+			(void)bt_conn_disconnect(device_conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+		}
+		k_work_schedule(&system_off_work, K_SECONDS(SYSTEM_OFF_DELAY));
+		return;
+	}
+
+	if (!(buttons & CONNECTABLE_ADV_BUTTON)) {
 		return;
 	}
 
@@ -109,8 +138,11 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
 	(void)err;
 }
 
+#endif /* CONFIG_BT_POWER_PROFILING_BLE */
+
 int main(void)
 {
+#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE)
 	int err;
 
 	err = dk_buttons_init(button_handler);
@@ -127,11 +159,11 @@ int main(void)
 	if (err) {
 		return 0;
 	}
+#endif
 
-	/* No button pressed at boot: schedule power off. */
+	/* No BLE or no button at boot: schedule power off. */
 	k_work_schedule(&system_off_work, K_SECONDS(SYSTEM_OFF_DELAY));
 
-	/* Run until power off (no main loop; work runs in workqueue). */
 	k_sleep(K_FOREVER);
 	return 0;
 }
