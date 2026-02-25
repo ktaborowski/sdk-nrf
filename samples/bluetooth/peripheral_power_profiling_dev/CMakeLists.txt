@@ -11,6 +11,5 @@ project(peripheral_power_profiling)
 # NORDIC SDK APP START
 target_sources(app PRIVATE
   src/main.c
-  src/pwr_service.c
 )
 # NORDIC SDK APP END
