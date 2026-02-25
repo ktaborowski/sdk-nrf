@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) 2025 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ *
+ * Netcore (cpunet) low-power overlay: disable peripherals not used by
+ * ipc_radio BLE HCI IPC (no console, no 802.15.4, no GPIO).
+ */
+
+/* UART not used (CONFIG_UART_CONSOLE=n in ipc_radio); disable to save power */
+&uart0 {
+	status = "disabled";
+};
+
+/* BLE-only build: IEEE 802.15.4 not used */
+&ieee802154 {
+	status = "disabled";
+};
+
+/* GPIOTE/GPIO not required for BLE controller + IPC on netcore */
+&gpiote {
+	status = "disabled";
+};
+
+&gpio0 {
+	status = "disabled";
+};
+
+&gpio1 {
+	status = "disabled";
+};
