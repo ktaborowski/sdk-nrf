@@ -7,10 +7,10 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/poweroff.h>
 
-#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE)
+#if IS_ENABLED(CONFIG_APP_GPIO_WAKEUP_ENABLE)
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/devicetree.h>
-#endif
+#endif /* CONFIG_APP_GPIO_WAKEUP_ENABLE */
 
 #define SYSTEM_OFF_DELAY 1
 
@@ -19,8 +19,7 @@ static K_WORK_DELAYABLE_DEFINE(system_off_work, system_off_work_handler);
 
 static void system_off(void)
 {
-#if !IS_ENABLED(CONFIG_SOC_SERIES_NRF54H)
-#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE) && DT_NODE_EXISTS(DT_ALIAS(sw0))
+#if IS_ENABLED(CONFIG_APP_GPIO_WAKEUP_ENABLE)
 	/* Configure button 1 (sw0) as wake source from system off (level-active). */
 	static const struct gpio_dt_spec sw0 = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 
@@ -28,9 +27,8 @@ static void system_off(void)
 		(void)gpio_pin_configure_dt(&sw0, GPIO_INPUT);
 		(void)gpio_pin_interrupt_configure_dt(&sw0, GPIO_INT_LEVEL_ACTIVE);
 	}
-#endif
+#endif /* CONFIG_APP_GPIO_WAKEUP_ENABLE */
 	sys_poweroff();
-#endif
 }
 
 static void system_off_work_handler(struct k_work *work)
@@ -38,7 +36,7 @@ static void system_off_work_handler(struct k_work *work)
 	system_off();
 }
 
-#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE)
+#if IS_ENABLED(CONFIG_APP_POWER_PROFILING_BLE)
 
 #include <dk_buttons_and_leds.h>
 #include <zephyr/bluetooth/bluetooth.h>
@@ -138,11 +136,11 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
 	(void)err;
 }
 
-#endif /* CONFIG_BT_POWER_PROFILING_BLE */
+#endif /* CONFIG_APP_POWER_PROFILING_BLE */
 
 int main(void)
 {
-#if IS_ENABLED(CONFIG_BT_POWER_PROFILING_BLE)
+#if IS_ENABLED(CONFIG_APP_POWER_PROFILING_BLE)
 	int err;
 
 	err = dk_buttons_init(button_handler);

@@ -7,7 +7,16 @@
 config PARTITION_MANAGER
 	default n if !BOARD_IS_NON_SECURE
 
-config NRF_DEFAULT_IPC_RADIO
+config APP_POWER_PROFILING_BLE
+	bool "Enable BLE (app and netcore)"
 	default y
+	help
+	  When enabled, BLE is used and the netcore (ipc_radio) image is built
+	  on nRF5340. When disabled, no netcore image is built (app core only,
+	  lower power). Must match the app image CONFIG_APP_POWER_PROFILING_BLE;
+	  use FILE_SUFFIX=ble_disabled to build with BLE disabled.
+
+config NRF_DEFAULT_IPC_RADIO
+	default y if APP_POWER_PROFILING_BLE
 
 source "share/sysbuild/Kconfig"

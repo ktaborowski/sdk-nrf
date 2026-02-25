@@ -8,7 +8,7 @@ source "Kconfig.zephyr"
 
 menu "Nordic Bluetooth power profiling sample"
 
-config BT_POWER_PROFILING_BLE
+config APP_POWER_PROFILING_BLE
 	bool "Enable BLE"
 	default y
 	help
@@ -16,26 +16,33 @@ config BT_POWER_PROFILING_BLE
 	  advertising on button press. When disabled, no BLE stack or buttons
 	  are used; the device schedules system off and powers down.
 	  Use overlay-ble_disabled.conf to build with BLE disabled (sets BT=n,
-	  DK_LIBRARY=n).
+	  DK_LIBRARY=n). On nRF5340, use FILE_SUFFIX=ble_disabled to also disable
+	  netcore (app core only, lower power).
+
+config APP_GPIO_WAKEUP_ENABLE
+	bool "Use button to wake up device from system off"
+	default y
+	help
+	  Enable system off wakeup from pressing sw0 button.
 
 config BT_POWER_PROFILING_CONNECTABLE_ADV_DURATION
 	int "Connectable advertising duration"
 	default 3000
-	depends on BT_POWER_PROFILING_BLE
+	depends on APP_POWER_PROFILING_BLE
 	help
 	  Connectable advertising duration in N*10 milliseconds unit.
 
 config BT_POWER_PROFILING_CONNECTABLE_ADV_INTERVAL_MIN
 	int "Connectable advertising minimum interval"
 	default 160
-	depends on BT_POWER_PROFILING_BLE
+	depends on APP_POWER_PROFILING_BLE
 	help
 	  Connectable advertising minimum interval in 0.625 milliseconds unit.
 
 config BT_POWER_PROFILING_CONNECTABLE_ADV_INTERVAL_MAX
 	int "Connectable advertising maximum interval"
 	default 240
-	depends on BT_POWER_PROFILING_BLE
+	depends on APP_POWER_PROFILING_BLE
 	help
 	  Connectable advertising maximum interval in 0.625 milliseconds unit.
 
