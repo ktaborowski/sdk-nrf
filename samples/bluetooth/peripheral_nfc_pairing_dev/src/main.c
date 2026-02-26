@@ -13,33 +13,9 @@
 
 #include <dk_buttons_and_leds.h>
 
-#define DEVICE_NAME CONFIG_BT_DEVICE_NAME
-#define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
+#include "advertising.h"
 
 #define CON_STATUS_LED DK_LED1
-
-static struct k_work adv_work;
-
-static const struct bt_data ad[] = {
-	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
-	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-};
-
-static void adv_work_handler(struct k_work *work)
-{
-	int err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), NULL, 0);
-
-	if (err) {
-		printk("Advertising failed to start (err %d)\n", err);
-		return;
-	}
-	printk("Advertising started\n");
-}
-
-static void advertising_start(void)
-{
-	k_work_submit(&adv_work);
-}
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -105,7 +81,7 @@ int main(void)
 		}
 	}
 
-	k_work_init(&adv_work, adv_work_handler);
+	advertising_init();
 	advertising_start();
 
 	for (;;) {
