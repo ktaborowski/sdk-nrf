@@ -32,6 +32,9 @@ static void connected(struct bt_conn *conn, uint8_t err)
 		return;
 	}
 
+	/* Require pairing */
+	bt_conn_set_security(conn, BT_SECURITY_L2);
+
 	printk("Connected %s\n", addr);
 	dk_set_led_on(CON_STATUS_LED);
 }
