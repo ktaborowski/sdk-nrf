@@ -13,8 +13,6 @@
 
 #include <dk_buttons_and_leds.h>
 
-#include <ncs_commit.h>
-
 #include "advertising.h"
 #include "pairing.h"
 
@@ -32,8 +30,10 @@ static void connected(struct bt_conn *conn, uint8_t err)
 		return;
 	}
 
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
 	/* Require pairing */
 	bt_conn_set_security(conn, BT_SECURITY_L2);
+#endif
 
 	printk("Connected %s\n", addr);
 	dk_set_led_on(CON_STATUS_LED);
@@ -54,6 +54,7 @@ static void recycled_cb(void)
 	advertising_start();
 }
 
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
 static void security_changed(struct bt_conn *conn, bt_security_t level,
 			     enum bt_security_err err)
 {
@@ -68,12 +69,15 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 		       bt_security_err_to_str(err));
 	}
 }
+#endif
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.connected = connected,
 	.disconnected = disconnected,
 	.recycled = recycled_cb,
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
 	.security_changed = security_changed,
+#endif
 };
 
 int main(void)
@@ -81,7 +85,7 @@ int main(void)
 	int err;
 
 	printk("Starting Bluetooth LE peripheral\n");
-	printk("Build " BUILD_TIMESTAMP "\nCommit " NCS_COMMIT_STRING "\n");
+	printk("Build time" BUILD_TIMESTAMP "\n");
 
 	err = dk_leds_init();
 	if (err) {
@@ -89,11 +93,13 @@ int main(void)
 		return 0;
 	}
 
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
 	err = pairing_register();
 	if (err) {
 		printk("Failed to register pairing callbacks (err %d)\n", err);
 		return 0;
 	}
+#endif
 
 	err = bt_enable(NULL);
 	if (err) {
@@ -103,12 +109,12 @@ int main(void)
 
 	printk("Bluetooth initialized\n");
 
-	if (IS_ENABLED(CONFIG_SETTINGS)) {
-		err = settings_load();
-		if (err) {
-			printk("Cannot load settings (err %d)\n", err);
-		}
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
+	err = settings_load();
+	if (err) {
+		printk("Cannot load settings (err %d)\n", err);
 	}
+#endif
 
 	advertising_init();
 	advertising_start();

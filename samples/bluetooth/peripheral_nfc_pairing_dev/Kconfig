@@ -6,6 +6,20 @@
 
 menu "NFC Paring configuration"
 
+config BT_PAIRING_SECURITY_ENABLED
+	bool "Enable BLE security (pairing/bonding)"
+	default y
+	select BT_SMP
+	select BT_SETTINGS
+	select FLASH
+	select FLASH_PAGE_LAYOUT
+	select FLASH_MAP
+	select ZMS if (SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
+	select NVS if !(SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
+	select SETTINGS
+	help
+	  Enable BLE pairing and bonding for the NFC pairing peripheral sample.
+
 choice NFC_TAG_CONNECTION_HANDOVER_ROLE
 	prompt "Connection Handover Tag role"
 	default NFC_TAG_CH_SELECTOR
@@ -29,15 +43,6 @@ config NFC_TAG_CH_REQUESTER
 	  details check NFC Forum Connection Handover 1.5 2.2.
 
 endchoice
-
-config SETTINGS
-	default y
-
-config ZMS
-	default y if (SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
-
-config NVS
-	default y if !(SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
 
 endmenu
 
