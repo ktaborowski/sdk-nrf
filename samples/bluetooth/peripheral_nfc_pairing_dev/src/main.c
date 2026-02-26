@@ -13,6 +13,8 @@
 
 #include <dk_buttons_and_leds.h>
 
+#include <ncs_commit.h>
+
 #include "advertising.h"
 #include "pairing.h"
 
@@ -76,6 +78,7 @@ int main(void)
 	int err;
 
 	printk("Starting Bluetooth LE peripheral\n");
+	printk("Build " BUILD_TIMESTAMP "\nCommit " NCS_COMMIT_STRING "\n");
 
 	err = dk_leds_init();
 	if (err) {
