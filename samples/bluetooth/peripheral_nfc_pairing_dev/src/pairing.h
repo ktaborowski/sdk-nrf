@@ -13,4 +13,6 @@ int pairing_register(void);
 
 int paring_key_generate(struct bt_le_oob *oob);
 
+const uint8_t *pairing_get_tk(void);
+
 #endif /* PAIRING_H__ */

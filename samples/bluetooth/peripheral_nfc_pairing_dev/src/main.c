@@ -74,6 +74,7 @@ static int nfc_ndef_le_oob_encode(uint8_t *file_buf, size_t buf_size)
 	rec_payload.flags = NFC_NDEF_LE_OOB_REC_FLAGS(BT_LE_AD_NO_BREDR);
 #if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
 	rec_payload.le_sc_data = &oob_local.le_sc_data;
+	rec_payload.tk_value = (uint8_t *)pairing_get_tk();
 #endif
 
 	printk("NFC: addr: %s\n", bt_addr_le_str(rec_payload.addr));
@@ -153,11 +154,6 @@ static void connected(struct bt_conn *conn, uint8_t err)
 		       bt_hci_err_to_str(err));
 		return;
 	}
-
-#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
-	/* Require pairing – sends Security Request so phone starts pairing with OOB */
-	(void)bt_conn_set_security(conn, BT_SECURITY_L2);
-#endif
 
 	printk("Connected %s\n", addr);
 	dk_set_led_on(CON_STATUS_LED);
