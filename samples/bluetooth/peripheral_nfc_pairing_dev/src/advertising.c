@@ -21,11 +21,13 @@ static void adv_work_handler(struct k_work *work)
 {
 	int err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), NULL, 0);
 
-	if (err) {
+	if (err && err != -EALREADY) {
 		printk("Advertising failed to start (err %d)\n", err);
 		return;
 	}
-	printk("Advertising started\n");
+	if (!err) {
+		printk("Advertising started\n");
+	}
 }
 
 void advertising_start(void)

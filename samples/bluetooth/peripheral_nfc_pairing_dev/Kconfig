@@ -10,13 +10,14 @@ config BT_PAIRING_SECURITY_ENABLED
 	bool "Enable BLE security (pairing/bonding)"
 	default y
 	select BT_SMP
+	select BT_SMP_APP_PAIRING_ACCEPT
 	select BT_SETTINGS
+	select SETTINGS
 	select FLASH
 	select FLASH_PAGE_LAYOUT
 	select FLASH_MAP
 	select ZMS if (SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
 	select NVS if !(SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
-	select SETTINGS
 	help
 	  Enable BLE pairing and bonding for the NFC pairing peripheral sample.
 

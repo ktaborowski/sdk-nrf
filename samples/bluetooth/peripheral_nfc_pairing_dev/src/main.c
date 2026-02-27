@@ -9,6 +9,7 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/hci.h>
+#include <common/bt_str.h>
 
 #include <zephyr/settings/settings.h>
 
@@ -30,6 +31,7 @@
 #define NDEF_FILE_BUF_SIZE 256
 
 static uint8_t ndef_file_buf[NDEF_FILE_BUF_SIZE];
+static struct bt_le_oob oob_local;
 
 static void nfc_callback(void *context, nfc_t4t_event_t event,
 			 const uint8_t *data, size_t data_length, uint32_t flags)
@@ -60,14 +62,7 @@ static void nfc_callback(void *context, nfc_t4t_event_t event,
 static int nfc_ndef_le_oob_encode(uint8_t *file_buf, size_t buf_size)
 {
 	int err;
-	static struct bt_le_oob oob_local;
 	struct nfc_ndef_le_oob_rec_payload_desc rec_payload;
-
-	err = bt_le_oob_get_local(BT_ID_DEFAULT, &oob_local);
-	if (err) {
-		printk("NFC: bt_le_oob_get_local failed %d\n", err);
-		return err;
-	}
 
 	memset(&rec_payload, 0, sizeof(rec_payload));
 	rec_payload.addr = &oob_local.addr;
@@ -77,6 +72,17 @@ static int nfc_ndef_le_oob_encode(uint8_t *file_buf, size_t buf_size)
 	rec_payload.appearance = NFC_NDEF_LE_OOB_REC_APPEARANCE(
 		CONFIG_BT_DEVICE_APPEARANCE);
 	rec_payload.flags = NFC_NDEF_LE_OOB_REC_FLAGS(BT_LE_AD_NO_BREDR);
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
+	rec_payload.le_sc_data = &oob_local.le_sc_data;
+#endif
+
+	printk("NFC: addr: %s\n", bt_addr_le_str(rec_payload.addr));
+	printk("NFC: local_name: %s\n", rec_payload.local_name);
+	printk("NFC: le_role: %d\n", *rec_payload.le_role);
+	printk("NFC: appearance: %d\n", *rec_payload.appearance);
+	printk("NFC: flags: %d\n", *rec_payload.flags);
+	printk("NFC: le_sc_data confirm: %s\n", bt_hex(rec_payload.le_sc_data->c, sizeof(rec_payload.le_sc_data->c)));
+	printk("NFC: le_sc_data random: %s\n", bt_hex(rec_payload.le_sc_data->r, sizeof(rec_payload.le_sc_data->r)));
 
 	NFC_NDEF_MSG_DEF(nfc_le_oob_msg, 1);
 	NFC_NDEF_LE_OOB_RECORD_DESC_DEF(nfc_le_oob_rec, 0, &rec_payload);
@@ -149,8 +155,8 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	}
 
 #if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
-	/* Require pairing */
-	bt_conn_set_security(conn, BT_SECURITY_L2);
+	/* Require pairing – sends Security Request so phone starts pairing with OOB */
+	(void)bt_conn_set_security(conn, BT_SECURITY_L2);
 #endif
 
 	printk("Connected %s\n", addr);
@@ -233,6 +239,20 @@ int main(void)
 		printk("Cannot load settings (err %d)\n", err);
 	}
 #endif
+
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
+	err = paring_key_generate(&oob_local);
+	if (err) {
+		printk("Failed to generate pairing keys (err %d)\n", err);
+		return 0;
+	}
+#else
+	err = bt_le_oob_get_local(BT_ID_DEFAULT, &oob_local);
+	if (err) {
+		printk("Failed to get local OOB data (err %d)\n", err);
+		return 0;
+	}
+#endif /* CONFIG_BT_PAIRING_SECURITY_ENABLED */
 
 	advertising_init();
 
