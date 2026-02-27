@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 #include <zephyr/kernel.h>
+#include <string.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
@@ -13,10 +14,127 @@
 
 #include <dk_buttons_and_leds.h>
 
+#include <nfc_t4t_lib.h>
+#include <nfc/t4t/ndef_file.h>
+#include <nfc/ndef/msg.h>
+#include <nfc/ndef/le_oob_rec.h>
+
 #include "advertising.h"
+#if defined(CONFIG_BT_PAIRING_SECURITY_ENABLED)
 #include "pairing.h"
+#endif
 
 #define CON_STATUS_LED DK_LED1
+#define NFC_FIELD_LED  DK_LED2
+
+#define NDEF_FILE_BUF_SIZE 256
+
+static uint8_t ndef_file_buf[NDEF_FILE_BUF_SIZE];
+
+static void nfc_callback(void *context, nfc_t4t_event_t event,
+			 const uint8_t *data, size_t data_length, uint32_t flags)
+{
+	ARG_UNUSED(context);
+	ARG_UNUSED(data);
+	ARG_UNUSED(data_length);
+	ARG_UNUSED(flags);
+
+	switch (event) {
+	case NFC_T4T_EVENT_FIELD_ON:
+		printk("NFC: field ON\n");
+		dk_set_led_on(NFC_FIELD_LED);
+		break;
+	case NFC_T4T_EVENT_FIELD_OFF:
+		printk("NFC: field OFF\n");
+		dk_set_led_off(NFC_FIELD_LED);
+		break;
+	case NFC_T4T_EVENT_NDEF_READ:
+		printk("NFC: NDEF read\n");
+		advertising_start();
+		break;
+	default:
+		break;
+	}
+}
+
+static int nfc_ndef_le_oob_encode(uint8_t *file_buf, size_t buf_size)
+{
+	int err;
+	static struct bt_le_oob oob_local;
+	struct nfc_ndef_le_oob_rec_payload_desc rec_payload;
+
+	err = bt_le_oob_get_local(BT_ID_DEFAULT, &oob_local);
+	if (err) {
+		printk("NFC: bt_le_oob_get_local failed %d\n", err);
+		return err;
+	}
+
+	memset(&rec_payload, 0, sizeof(rec_payload));
+	rec_payload.addr = &oob_local.addr;
+	rec_payload.local_name = bt_get_name();
+	rec_payload.le_role = NFC_NDEF_LE_OOB_REC_LE_ROLE(
+		NFC_NDEF_LE_OOB_REC_LE_ROLE_PERIPH_ONLY);
+	rec_payload.appearance = NFC_NDEF_LE_OOB_REC_APPEARANCE(
+		CONFIG_BT_DEVICE_APPEARANCE);
+	rec_payload.flags = NFC_NDEF_LE_OOB_REC_FLAGS(BT_LE_AD_NO_BREDR);
+
+	NFC_NDEF_MSG_DEF(nfc_le_oob_msg, 1);
+	NFC_NDEF_LE_OOB_RECORD_DESC_DEF(nfc_le_oob_rec, 0, &rec_payload);
+
+	err = nfc_ndef_msg_record_add(&NFC_NDEF_MSG(nfc_le_oob_msg),
+				      &NFC_NDEF_LE_OOB_RECORD_DESC(nfc_le_oob_rec));
+	if (err) {
+		printk("NFC: ndef_msg_record_add failed %d\n", err);
+		return err;
+	}
+
+	uint32_t msg_len = nfc_t4t_ndef_file_msg_size_get(buf_size);
+	uint8_t *msg_buf = nfc_t4t_ndef_file_msg_get(file_buf);
+
+	err = nfc_ndef_msg_encode(&NFC_NDEF_MSG(nfc_le_oob_msg), msg_buf, &msg_len);
+	if (err) {
+		printk("NFC: ndef_msg_encode failed %d\n", err);
+		return err;
+	}
+
+	err = nfc_t4t_ndef_file_encode(file_buf, &msg_len);
+	if (err) {
+		printk("NFC: ndef_file_encode failed %d\n", err);
+		return err;
+	}
+	return 0;
+}
+
+static void nfc_init(void)
+{
+	int err;
+
+	err = nfc_t4t_setup(nfc_callback, NULL);
+	if (err) {
+		printk("NFC: nfc_t4t_setup failed %d\n", err);
+		return;
+	}
+
+	err = nfc_ndef_le_oob_encode(ndef_file_buf, sizeof(ndef_file_buf));
+	if (err) {
+		printk("NFC: ndef encode failed %d\n", err);
+		return;
+	}
+
+	err = nfc_t4t_ndef_rwpayload_set(ndef_file_buf, sizeof(ndef_file_buf));
+	if (err) {
+		printk("NFC: nfc_t4t_ndef_rwpayload_set failed %d\n", err);
+		return;
+	}
+
+	err = nfc_t4t_emulation_start();
+	if (err) {
+		printk("NFC: nfc_t4t_emulation_start failed %d\n", err);
+		return;
+	}
+
+	printk("NFC initialized\n");
+}
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -117,7 +235,8 @@ int main(void)
 #endif
 
 	advertising_init();
-	advertising_start();
+
+	nfc_init();
 
 	for (;;) {
 		k_sleep(K_SECONDS(1));

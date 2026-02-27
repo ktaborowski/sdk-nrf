@@ -10,7 +10,6 @@ common:
 tests:
   sample.bluetooth.peripheral_nfc_pairing:
     sysbuild: true
-    build_only: true
     integration_platforms:
       - nrf54l15dk/nrf54l15/cpuapp
     platform_allow:
@@ -27,7 +26,6 @@ tests:
       - nrf54lm20dk/nrf54lm20a/cpuapp/ns
   sample.bluetooth.peripheral_nfc_pairing.no_security:
     sysbuild: true
-    build_only: true
     extra_args: CONFIG_BT_PAIRING_SECURITY_ENABLED=n
     integration_platforms:
       - nrf54l15dk/nrf54l15/cpuapp

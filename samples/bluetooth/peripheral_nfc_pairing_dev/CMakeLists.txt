@@ -16,7 +16,6 @@ target_compile_definitions(app PRIVATE BUILD_TIMESTAMP="${BUILD_TIMESTAMP}")
 target_sources(app  PRIVATE 
   src/main.c
   src/advertising.c
-  src/pairing.c
 )
 target_sources_ifdef(CONFIG_BT_PAIRING_SECURITY_ENABLED app PRIVATE src/pairing.c)
 # NORDIC SDK APP END
