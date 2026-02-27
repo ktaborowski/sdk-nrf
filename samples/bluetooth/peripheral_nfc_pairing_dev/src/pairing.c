@@ -63,6 +63,7 @@ static void auth_oob_data_request(struct bt_conn *conn, struct bt_conn_oob_info 
 		return;
 	}
 
+#if !defined(CONFIG_BT_SMP_SC_PAIR_ONLY)
 	if (info->type == BT_CONN_OOB_LE_LEGACY) {
 		printk("Legacy TK value requested\n");
 		err = bt_le_oob_set_legacy_tk(conn, tk_value);
@@ -71,6 +72,7 @@ static void auth_oob_data_request(struct bt_conn *conn, struct bt_conn_oob_info 
 		}
 		return;
 	}
+#endif
 
 	printk("Auth failed: Unsupported OOB type %u\n", info->type);
 }
@@ -92,7 +94,9 @@ static void pairing_complete(struct bt_conn *conn, bool bonded)
 
 	printk("Pairing completed: %s, bonded: %d\n", addr, bonded);
 	bt_le_oob_set_sc_flag(false);
+#if !defined(CONFIG_BT_SMP_SC_PAIR_ONLY)
 	bt_le_oob_set_legacy_flag(false);
+#endif
 }
 
 static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
@@ -104,7 +108,9 @@ static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
 	printk("Pairing failed conn: %s, reason %d %s\n", addr, reason,
 	       bt_security_err_to_str(reason));
 	bt_le_oob_set_sc_flag(false);
+#if !defined(CONFIG_BT_SMP_SC_PAIR_ONLY)
 	bt_le_oob_set_legacy_flag(false);
+#endif
 }
 
 static struct bt_conn_auth_cb conn_auth_callbacks = {
@@ -141,12 +147,13 @@ int paring_key_generate(struct bt_le_oob *oob)
 
 	printk("Generating new pairing keys\n");
 
+#if !defined(CONFIG_BT_SMP_SC_PAIR_ONLY)
 	err = bt_rand(tk_value, sizeof(tk_value));
 
 	if (err) {
 		printk("Random TK value generation failed: %d\n", err);
 	}
-
+#endif
 	err = bt_le_oob_get_local(BT_ID_DEFAULT, oob);
 	oob_local_ptr = err ? NULL : oob;
 
