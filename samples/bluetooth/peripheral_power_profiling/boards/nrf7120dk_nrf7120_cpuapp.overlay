@@ -1,0 +1,35 @@
+/*
+ * Copyright (c) 2026 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/* Report a higher sleep clock accuracy to the BLE controller than the
+ * default, to work around connection drops caused by higher than expected
+ * LF clock drift.
+ */
+&lfclk {
+	k32src = "xtal";
+	k32src-accuracy-ppm = <500>;
+};
+
+/* The DK buttons are on gpio4, which is missing the gpiote-instance property
+ * that its siblings gpio1 and gpio3 have. Without it, GPIO interrupts return
+ * -ENOTSUP and dk_buttons_init() fails.
+ */
+&gpio4 {
+	gpiote-instance = <&gpiote20>;
+};
+
+/* Carried over from app.overlay, which this overlay replaces: the sample
+ * only uses two buttons.
+ */
+/ {
+	aliases {
+		/delete-property/ sw2;
+		/delete-property/ sw3;
+	};
+};
+
+/delete-node/ &button2;
+/delete-node/ &button3;
