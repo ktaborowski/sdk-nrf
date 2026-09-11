@@ -747,16 +747,16 @@ int main(void)
 	err = dk_buttons_init(button_handler);
 	if (err) {
 		printk("Failed to initialize buttons (err %d)\n", err);
-		return 0;
+		button_state = CONNECTABLE_ADV_BUTTON;
+		has_changed = CONNECTABLE_ADV_BUTTON;
+	} else {
+		/* Read the button state after booting to check if advertising start is needed. */
+		dk_read_buttons(&button_state, &has_changed);
 	}
-
-	/* Read the button state after booting to check if advertising start is needed. */
-	dk_read_buttons(&button_state, &has_changed);
 
 	err = leds_init();
 	if (err) {
 		printk("LEDs init failed (err %d)\n", err);
-		return 0;
 	}
 
 	reset_reason_print();
