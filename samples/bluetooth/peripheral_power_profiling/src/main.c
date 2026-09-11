@@ -32,6 +32,133 @@
 #include "advertising.h"
 #include "pwr_service.h"
 
+#if defined(CONFIG_SOC_NRF7120)
+#include <nrfx.h>
+
+/*
+ * HACK: nrf71 soc.c only brings up HFXO64M when CONFIG_SOC_NRF71_WIFI_BOOT=y, because
+ * upstream it exists solely to feed the Wi-Fi core's clock request. BLE/MPSL needs the
+ * same 64 MHz clock but has no dependency on the Wi-Fi LMAC core, so this duplicates
+ * soc.c's hfxo64m_setup()/hfxo64m_start() (which are file-static there) to bring up
+ * HFXO64M from the sample while keeping CONFIG_SOC_NRF71_WIFI_BOOT=n (Wi-Fi core never
+ * boots). Investigation for KRKNWK-22447. Remove once nrf71 has its own clock_control
+ * driver exposing this.
+ */
+#define HFXO64M_REG(offset)	(*(volatile uint32_t *)((uintptr_t)NRF_HFXO64M_NS + (offset)))
+#define HFXO64M_REG_TRIM_RTUNE		HFXO64M_REG(0x440UL)
+#define HFXO64M_REG_TRIM_CHIRPTUNE	HFXO64M_REG(0x444UL)
+#define HFXO64M_REG_TRIM_DOUBLERCOMP	HFXO64M_REG(0x448UL)
+#define HFXO64M_REG_MIRROR		HFXO64M_REG(0x480UL)
+#define HFXO64M_REG_PWRUPCTRL		HFXO64M_REG(0x484UL)
+#define HFXO64M_REG_MODE		HFXO64M_REG(0x488UL)
+#define HFXO64M_REG_XTALSETTLETIME	HFXO64M_REG(0x48CUL)
+#define HFXO64M_REG_CHIRPTIME		HFXO64M_REG(0x490UL)
+#define HFXO64M_REG_ENABLEDAMPING	HFXO64M_REG(0x494UL)
+#define HFXO64M_REG_CFG			HFXO64M_REG(0x49CUL)
+
+#define HFXO64M_TRIM_RTUNE_VAL_Pos		(0UL)
+#define HFXO64M_TRIM_CHIRPTUNE_VAL_Pos		(0UL)
+#define HFXO64M_TRIM_DOUBLERCOMP_VAL_Pos	(0UL)
+
+#define HFXO64M_MIRROR_LOCK_Pos			(0UL)
+#define HFXO64M_MIRROR_LOCK_Disabled		(0UL)
+
+#define HFXO64M_PWRUPCTRL_CTRL_Pos		(0UL)
+#define HFXO64M_PWRUPCTRL_CTRL_Auto		(0UL)
+
+#define HFXO64M_MODE_MODE_Pos			(0UL)
+#define HFXO64M_MODE_MODE_Normal		(0UL)
+
+#define HFXO64M_XTALSETTLETIME_VAL_Pos		(0UL)
+#define HFXO64M_XTALSETTLETIME_VAL_Settle300us	(1UL)
+
+#define HFXO64M_CHIRPTIME_VAL_Pos		(0UL)
+#define HFXO64M_CHIRPTIME_VAL_Chirp56us		(3UL)
+
+#define HFXO64M_ENABLEDAMPING_VAL_Pos		(0UL)
+#define HFXO64M_ENABLEDAMPING_VAL_Disabled	(0UL)
+
+#define HFXO64M_CFG_LEVELSELECT_Pos		(0UL)
+#define HFXO64M_CFG_LEVELSELECT_Normal		(0UL)
+#define HFXO64M_CFG_ENABLENORMALBIASMODE_Pos	(1UL)
+#define HFXO64M_CFG_ENABLENORMALBIASMODE_Normal	(1UL)
+#define HFXO64M_CFG_BYPASSREG0V8_Pos		(2UL)
+#define HFXO64M_CFG_BYPASSREG0V8_Normal		(0UL)
+#define HFXO64M_CFG_BYPASSREG1V5_Pos		(3UL)
+#define HFXO64M_CFG_BYPASSREG1V5_Normal		(0UL)
+#define HFXO64M_CFG_ENABLECMOS1DIVIDER_Pos	(4UL)
+#define HFXO64M_CFG_ENABLECMOS1DIVIDER_Enabled	(1UL)
+#define HFXO64M_CFG_ENABLECMOS2DIVIDER_Pos	(5UL)
+#define HFXO64M_CFG_ENABLECMOS2DIVIDER_Disabled	(0UL)
+#define HFXO64M_CFG_ENABLECMOS3DIVIDER_Pos	(6UL)
+#define HFXO64M_CFG_ENABLECMOS3DIVIDER_Enabled	(1UL)
+#define HFXO64M_CFG_ENABLETSDIVIDER_Pos		(7UL)
+#define HFXO64M_CFG_ENABLETSDIVIDER_Disabled	(0UL)
+#define HFXO64M_CFG_BUFFDRIVECMOS1_Msk		(0x3UL << 8UL)
+#define HFXO64M_CFG_BUFFDRIVECMOS2_Msk		(0x3UL << 10UL)
+#define HFXO64M_CFG_BUFFDRIVECMOS3_Msk		(0x3UL << 12UL)
+#define HFXO64M_CFG_BUFFDRIVETS_Msk		(0x3UL << 14UL)
+#define HFXO64M_CFG_CHIRPEN_Msk			(0x1UL << 16UL)
+
+#define HFXO64M_TRIM_RTUNE_DEFAULT		(0x0UL)
+#define HFXO64M_TRIM_CHIRPTUNE_DEFAULT		(0x2UL)
+#define HFXO64M_TRIM_DOUBLERCOMP_DEFAULT	(0x3UL)
+
+static void hfxo64m_setup(void)
+{
+	HFXO64M_REG_TRIM_RTUNE =
+		HFXO64M_TRIM_RTUNE_DEFAULT << HFXO64M_TRIM_RTUNE_VAL_Pos;
+	HFXO64M_REG_TRIM_CHIRPTUNE =
+		HFXO64M_TRIM_CHIRPTUNE_DEFAULT << HFXO64M_TRIM_CHIRPTUNE_VAL_Pos;
+	HFXO64M_REG_TRIM_DOUBLERCOMP =
+		HFXO64M_TRIM_DOUBLERCOMP_DEFAULT << HFXO64M_TRIM_DOUBLERCOMP_VAL_Pos;
+
+	/* Keep the buffer drive strengths and the chirp enable as they come out of reset. */
+	HFXO64M_REG_CFG =
+		(HFXO64M_REG_CFG & (HFXO64M_CFG_BUFFDRIVECMOS1_Msk |
+				    HFXO64M_CFG_BUFFDRIVECMOS2_Msk |
+				    HFXO64M_CFG_BUFFDRIVECMOS3_Msk |
+				    HFXO64M_CFG_BUFFDRIVETS_Msk |
+				    HFXO64M_CFG_CHIRPEN_Msk)) |
+		(HFXO64M_CFG_LEVELSELECT_Normal << HFXO64M_CFG_LEVELSELECT_Pos) |
+		(HFXO64M_CFG_ENABLENORMALBIASMODE_Normal <<
+			HFXO64M_CFG_ENABLENORMALBIASMODE_Pos) |
+		(HFXO64M_CFG_BYPASSREG0V8_Normal << HFXO64M_CFG_BYPASSREG0V8_Pos) |
+		(HFXO64M_CFG_BYPASSREG1V5_Normal << HFXO64M_CFG_BYPASSREG1V5_Pos) |
+		(HFXO64M_CFG_ENABLECMOS1DIVIDER_Enabled << HFXO64M_CFG_ENABLECMOS1DIVIDER_Pos) |
+		(HFXO64M_CFG_ENABLECMOS2DIVIDER_Disabled << HFXO64M_CFG_ENABLECMOS2DIVIDER_Pos) |
+		(HFXO64M_CFG_ENABLECMOS3DIVIDER_Enabled << HFXO64M_CFG_ENABLECMOS3DIVIDER_Pos) |
+		(HFXO64M_CFG_ENABLETSDIVIDER_Disabled << HFXO64M_CFG_ENABLETSDIVIDER_Pos);
+
+	HFXO64M_REG_XTALSETTLETIME =
+		HFXO64M_XTALSETTLETIME_VAL_Settle300us << HFXO64M_XTALSETTLETIME_VAL_Pos;
+	HFXO64M_REG_ENABLEDAMPING =
+		HFXO64M_ENABLEDAMPING_VAL_Disabled << HFXO64M_ENABLEDAMPING_VAL_Pos;
+	HFXO64M_REG_CHIRPTIME =
+		HFXO64M_CHIRPTIME_VAL_Chirp56us << HFXO64M_CHIRPTIME_VAL_Pos;
+
+	/* A crystal is wired to XC1/XC2, so drive the core rather than bypass it for a TCXO. */
+	HFXO64M_REG_MODE = HFXO64M_MODE_MODE_Normal << HFXO64M_MODE_MODE_Pos;
+
+	/* Release the lock so that the mirrored registers above are taken into use. */
+	HFXO64M_REG_MIRROR = HFXO64M_MIRROR_LOCK_Disabled << HFXO64M_MIRROR_LOCK_Pos;
+
+	/* Power the oscillator automatically, following the hardware clock requests. */
+	HFXO64M_REG_PWRUPCTRL = HFXO64M_PWRUPCTRL_CTRL_Auto << HFXO64M_PWRUPCTRL_CTRL_Pos;
+}
+
+static void hfxo64m_start(void)
+{
+	NRF_CLOCK->EVENTS_XOSTARTED = 0;
+	NRF_CLOCK->TASKS_XOSTART =
+		(CLOCK_TASKS_XOSTART_TASKS_XOSTART_Trigger << CLOCK_TASKS_XOSTART_TASKS_XOSTART_Pos);
+
+	/* Wait until the crystal has started. */
+	while (NRF_CLOCK->EVENTS_XOSTARTED == 0) {
+	}
+}
+#endif /* defined(CONFIG_SOC_NRF7120) */
+
 #define RUN_STATUS_LED       DK_LED1
 #define CON_STATUS_LED       DK_LED2
 #define NFC_FIELD_STATUS_LED DK_LED3
@@ -607,6 +734,15 @@ int main(void)
 	uint32_t has_changed = 0;
 
 	printk("Starting Bluetooth Power Profiling sample\n");
+
+#if defined(CONFIG_SOC_NRF7120)
+	/* HACK: bring up HFXO64M here so BLE/MPSL gets its 64 MHz clock without
+	 * requiring CONFIG_SOC_NRF71_WIFI_BOOT=y (which also boots the Wi-Fi LMAC
+	 * core). See the comment above these two functions.
+	 */
+	hfxo64m_setup();
+	hfxo64m_start();
+#endif /* defined(CONFIG_SOC_NRF7120) */
 
 	err = dk_buttons_init(button_handler);
 	if (err) {
