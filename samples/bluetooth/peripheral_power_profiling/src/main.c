@@ -169,6 +169,12 @@ static void hfxo64m_start(void)
 #define RUN_LED_BLINK_INTERVAL 1000
 #define SYSTEM_OFF_DELAY       5
 
+/* Some button GPIOs on this board read as pressed for a moment after boot
+ * (see boards/nrf7120dk_nrf7120_cpuapp.overlay). Wait this long and re-read
+ * before trusting the boot-time button state.
+ */
+#define BUTTON_DEBOUNCE_DELAY_MS 50
+
 #define NOTIFICATION_INTERVAL CONFIG_BT_POWER_PROFILING_NOTIFICATION_INTERVAL
 #define NOTIFICATION_TIMEOUT  CONFIG_BT_POWER_PROFILING_NOTIFICATION_TIMEOUT
 
@@ -752,6 +758,8 @@ int main(void)
 	} else {
 		/* Read the button state after booting to check if advertising start is needed. */
 		dk_read_buttons(&button_state, &has_changed);
+		k_sleep(K_MSEC(BUTTON_DEBOUNCE_DELAY_MS));
+		dk_read_buttons(&button_state, &has_changed);
 	}
 
 	err = leds_init();
@@ -815,7 +823,7 @@ int main(void)
 
 	button_handler(button_state, has_changed);
 
-	if (!(button_state & (CONNECTABLE_ADV_BUTTON | NON_CONNECTABLE_ADV_BUTTON))) {
+	if (!(button_state & has_changed & (CONNECTABLE_ADV_BUTTON | NON_CONNECTABLE_ADV_BUTTON))) {
 		k_work_schedule(&system_off_work, K_SECONDS(SYSTEM_OFF_DELAY));
 	}
 
