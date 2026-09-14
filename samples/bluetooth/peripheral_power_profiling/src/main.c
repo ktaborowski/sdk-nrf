@@ -748,6 +748,10 @@ int main(void)
 	 */
 	hfxo64m_setup();
 	hfxo64m_start();
+
+	/* HACK for P4 working at DK (with LEDs and buttons) */
+	uint32_t *pwr_ptr_wr = (uint32_t*)(NRF_P4_S_BASE | 0x34); // use MDK registers when available                                                        
+	*pwr_ptr_wr = 0x0003;
 #endif /* defined(CONFIG_SOC_NRF7120) */
 
 	err = dk_buttons_init(button_handler);

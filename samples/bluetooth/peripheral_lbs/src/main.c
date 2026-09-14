@@ -208,6 +208,12 @@ int main(void)
 
 	LOG_INF("Starting Bluetooth Peripheral LBS sample");
 
+#if defined(CONFIG_SOC_NRF7120)
+	/* HACK for P4 working at DK (with LEDs and buttons) */
+	uint32_t *pwr_ptr_wr = (uint32_t*)(NRF_P4_S_BASE | 0x34); // use MDK registers when available                                                        
+	*pwr_ptr_wr = 0x0003;
+#endif
+
 	err = dk_leds_init();
 	if (err) {
 		LOG_WRN("LEDs init failed (err %d)", err);
